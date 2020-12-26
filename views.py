@@ -173,10 +173,10 @@ def callback(request):
                         habit = data[4]  # 使用者的運動習慣
                         mode = 'n'  # 預設使用者的策略為正常
 
-                        bmr = bmrCal(age=user_age, gender=user_gender, height=user_height, weight=user_weight)  # 計算使用者的BMR
-                        tdee = tdeeCal(bmr, user_habit)  # 計算使用者的TDEE
-
-                        user = user_Info(name=name, age=age, gender=gender, height=height, weight=weight,mode=mode, bmr=bmr, tdee=tdee)
+                        bmr = bmrCal(age=age, gender=gender, height=height, weight=weight)  # 計算使用者的BMR
+                        tdee = tdeeCal(bmr, habit)  # 計算使用者的TDEE
+  
+                        # user = user_Info(name=name, age=age, gender=gender, height=height, weight=weight,mode=mode, bmr=bmr, tdee=tdee)
 
                         # 印出使用者的基礎代謝率和TDEE
                         message.append(TextSendMessage(text='你的每日基礎代謝率(BMR)是' + str(round(bmr, 3)) + ' Kcal/Day。'))
@@ -188,11 +188,12 @@ def callback(request):
                             message.append(TextSendMessage(text='個人資料新增完畢'))
                         else:
                             User_Info.objects.filter(uid=uid,data_type="個人資料",number=1).update(user_bmr=str(tdee),cal=str(tdee))
+                            User_Info.objects.filter(uid=uid,data_type="個人資料",date=today).update(user_bmr=str(tdee),cal=str(tdee))
+                            User_Info.objects.filter(uid=uid, data_type="吃東西", date=today).delete()
                             message.append(TextSendMessage(text='已修改個人資料'))
-
                     except:  # 除錯(使用者輸入錯誤提醒)
                         message.append(TextSendMessage(text="輸入格式為：性別 年齡 身高 體重 運動習慣"))
-                    
+                
 
                 elif "查詢資料" in mtext:  # 查詢今天的熱量，輸出圓餅圖
 
@@ -209,7 +210,7 @@ def callback(request):
 
                         # 當天的使用者紀錄
                         user = User_Info.objects.get(uid=uid,data_type="個人資料",date=today)
-
+ 
                         # 回傳使用者熱量或是提醒
                         if float(user.cal) > 0:
                             message.append(TextSendMessage(text='今天仍可以攝取' + str(round(float(user.cal), 3))))
@@ -437,7 +438,7 @@ def callback(request):
                         )
                     )
                 elif "使用說明" in mtext:
-                    message.append(TextSendMessage(text="希望這個小工具能幫助你走上\n健康快樂的飲食之路\n" + "以下為使用說明手冊\n1.在開始使用功能之前，輸入或修改基本資料：\n輸入格式為m/f(男/女) 體重 身高 年齡 運動習慣”，以上資訊皆須按照順序且以半形空格隔開\n2.運動習慣有五個選項，請選取以下五個英文字母其中一個輸入：\nA：久坐\nB：輕量活動(1~3天/週)\nC：中度活動量(3~5天/週)\nD：高度活動量(6~7天/週)\nE：非常高度活動量(運動員)\n3.輸入食物的方法為“用餐時間”/“食物名稱”\n用餐時間：早餐、午餐、晚餐、宵夜、飲料、其他\n舉例：輸入“早餐/蛋餅”\n4.自行輸入食物熱量的方式為“時段，食物，熱量”，以上資訊皆須按照順序且以全形逗號隔開\n5.飲食策略：有三個選項，請選取以下三個英文小寫字母\na.增重\nb.正常\nc.減重\n舉例：輸入“a策略”\n6.查詢選單內容包含：使用說明、查詢30日資料及查詢個人資料（一天還能吃多少）"))
+                    message.append(TextSendMessage(text="希望這個小工具能幫助你走上\n健康快樂的飲食之路\n" + "以下為使用說明手冊\n1.在開始使用功能之前，輸入或修改基本資料：\n輸入格式為m/f(男/女) 體重 身高 年齡 運動習慣”，以上資訊皆須按照順序且以半形空格隔開\n舉例：m 18 185 80 C\n2.運動習慣有五個選項，請選取以下五個英文字母其中一個輸入：\nA：久坐\nB：輕量活動(1~3天/週)\nC：中度活動量(3~5天/週)\nD：高度活動量(6~7天/週)\nE：非常高度活動量(運動員)\n3.輸入食物的方法為“用餐時間/食物名稱”\n用餐時間：早餐、午餐、晚餐、宵夜、飲料、其他\n舉例：輸入“早餐/蛋餅”\n4.自行輸入食物熱量的方式為“時段，食物，熱量”，以上資訊皆須按照順序且以全形逗號隔開\n舉例：輸入“早餐，蛋餅，100”\n5.查詢選單內容包含：使用說明、查詢30日資料、查詢個人資料（一天還能吃多少）及修改策略"))
 
                 else:  # 提醒部分，我們沒做出主動提醒，所以改成使用者輸入無法啟動功能的訊息就傳提醒訊息
                     try:   
