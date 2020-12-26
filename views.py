@@ -387,11 +387,10 @@ def callback(request):
                             tdeeList.append(user_tdee)
                         except User_Info.DoesNotExist:
                                 tdeeList.append(0)
-
                     tdeePlot = [float(infor.user_bmr)]*31
 
-                    py.plot(dateList, tdeeList, label = "Consumption Level", marker = 'o')
-                    py.plot(dateList, tdeePlot, label = "TDEE Level", marker = 'o')
+                    py.plot(xList, tdeeList, label = "Consumption Level", marker = 'o')
+                    py.plot(xList, tdeePlot, label = "TDEE Level", marker = 'o')
                     py.legend(loc = 'upper left')
                     py.xlabel('Dates')
                     py.ylabel('Tdee')
@@ -409,7 +408,7 @@ def callback(request):
                     # 輸出圖表
                     message.append(ImageSendMessage(original_content_url=uploaded_image.link, preview_image_url=uploaded_image.link))
 
-                elif "策略" in mtext:  # 更改飲食策略
+                elif "." in mtext:  # 更改飲食策略
                     strategy = mtext[:1]
                     user = User_Info.objects.get(uid=uid, data_type='個人資料', number=1)
                     if strategy == 'a' :
@@ -417,9 +416,26 @@ def callback(request):
                     elif strategy == 'b':
                         message.append(TextSendMessage(text='在維持體重的情況下，你/妳每天可以攝取的熱量是' + str(round(float(user.user_bmr), 3)) + ' Kcal/Day。'))
                     elif strategy == 'c':
-                        message.append(TextSendMessage(text='在減重的策略下，你不能攝取超過' + str(round(float(user_bmr), 3)) + ' Kcal/Day。'))
+                        message.append(TextSendMessage(text='在減重的策略下，你不能攝取超過' + str(round(float(user.user_bmr), 3)) + ' Kcal/Day。'))
                     else:
                         message.append(TextSendMessage(text='輸入格式為 英文小寫加策略 \n(a:增重, b:正常, c:減重)'))
+                elif '更改策略' in mtext:  # 更改飲食策略(快捷鍵)
+                    message.append(TextSendMessage(text="要改成什麼策略？",
+                            quick_reply=QuickReply(
+                                items=[
+                                    QuickReplyButton(
+                                        action=MessageAction(label="增重",text="a.增重")
+                                    ),
+                                    QuickReplyButton(
+                                        action=MessageAction(label="正常",text="b.正常")
+                                    ),
+                                    QuickReplyButton(
+                                        action=MessageAction(label="減重",text="c.減重")
+                                    )
+                                ]
+                            )
+                        )
+                    )
                 elif "使用說明" in mtext:
                     message.append(TextSendMessage(text="希望這個小工具能幫助你走上\n健康快樂的飲食之路\n" + "以下為使用說明手冊\n1.在開始使用功能之前，輸入或修改基本資料：\n輸入格式為m/f(男/女) 體重 身高 年齡 運動習慣”，以上資訊皆須按照順序且以半形空格隔開\n2.運動習慣有五個選項，請選取以下五個英文字母其中一個輸入：\nA：久坐\nB：輕量活動(1~3天/週)\nC：中度活動量(3~5天/週)\nD：高度活動量(6~7天/週)\nE：非常高度活動量(運動員)\n3.輸入食物的方法為“用餐時間”/“食物名稱”\n用餐時間：早餐、午餐、晚餐、宵夜、飲料、其他\n舉例：輸入“早餐/蛋餅”\n4.自行輸入食物熱量的方式為“時段，食物，熱量”，以上資訊皆須按照順序且以全形逗號隔開\n5.飲食策略：有三個選項，請選取以下三個英文小寫字母\na.增重\nb.正常\nc.減重\n舉例：輸入“a策略”\n6.查詢選單內容包含：使用說明、查詢30日資料及查詢個人資料（一天還能吃多少）"))
 
