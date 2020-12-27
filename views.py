@@ -1,6 +1,5 @@
+# 插入設置虛擬環境與line聊天機器人所需的套件
 from django.shortcuts import render
-
-# Create your views here.
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
@@ -10,11 +9,9 @@ from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import *
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
 parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
-
-#models.py資料表
 from 聊天機器人.models import *
 
-# 由此處開始為主程式import
+# 插入主程式需要的套件
 import datetime
 import matplotlib
 import matplotlib.pyplot as py
@@ -32,9 +29,10 @@ import pandas as pd
 import time
 import random
 
+# 設置可以回傳訊息的聊天機器人
 @csrf_exempt
 def callback(request):
-    if request.method == 'POST':
+    if request.method == 'POST':  # 連結django與linechatbox並傳送訊息
         signature = request.META['HTTP_X_LINE_SIGNATURE']
         body = request.body.decode('utf-8')
 
@@ -96,7 +94,7 @@ def callback(request):
         calDict = {}  # 食物熱量對照字典
         typeDict = {'早餐': 0, '午餐': 0, '晚餐': 0, '宵夜': 0, '飲料': 0, '其他': 0}  # 用餐類別字典
 
-        # 方法一: 利用爬蟲讀取網站資料
+        # 尋找食物熱量的方法一: 利用爬蟲讀取網站資料
         list_rows = []  # 爬蟲資料串列
         url = "http://www.dpjh.ylc.edu.tw/97/217health/4-4-01calorie.htm#1"
         resp = requests.get(url)
@@ -104,17 +102,15 @@ def callback(request):
 
         soup = BeautifulSoup(resp.text, "lxml")
         rows = soup.find_all('tr')
-
-        # 爬取網站資料並清理
-        for row in rows:
+        
+        for row in rows:  # 爬取網站資料並清理
             row_td = row.find_all('td')
             str_cells = str(row_td) 
             clean = re.compile('<.*?>')
             clean2 = (re.sub(clean, '',str_cells))
             list_rows.append(clean2)
-
-        #  將爬蟲資料整理後存到字典
-        for i in range(4,len(list_rows)):
+        
+        for i in range(4,len(list_rows)):  #  將爬蟲資料整理後存到字典
             if list_rows[i].find(',') != -1:
                 list_rows[i] = list_rows[i].strip('[]')
                 list_rows[i] = list_rows[i].split(', ')
@@ -125,7 +121,7 @@ def callback(request):
                         list_rows[i][3] = list_rows[i][3].strip("卡")  # 去掉儲存格內熱量的國字表示
                         calDict[list_rows[i][0]] = int(list_rows[i][3])
 
-        # 方法二: 讀取 excel檔案的食物熱量對照表
+        # 尋找食物熱量的方法二: 讀取 excel檔案的食物熱量對照表
         readbook = xlrd.open_workbook(r'C:\Users\林煥傑\Desktop\2020食物熱量對照大全.xlsx')
         foodsheet = readbook.sheets()[0]
         nrows = foodsheet.nrows
@@ -137,7 +133,7 @@ def callback(request):
         calKeys = calDict.keys()  # 熱量字典的Keys
         calKeys_sorted = sorted(calKeys, key=len, reverse=True)  # 將熱量字度依長度排序
         max_len = len(calKeys_sorted[0])  # 查看熱量字典最長的字是多長
-
+        # 對聊天機器人輸入指令
         try:
             events = parser.parse(body, signature)
         except InvalidSignatureError:
@@ -163,7 +159,7 @@ def callback(request):
             #其中2、5、7功能有放在圖表選單，其他皆需要手動輸入
 
 
-                if ' ' in mtext:  # BMR計算(性別, 年齡, 身高, 體重, 運動習慣)以及個人資料紀錄或修改
+                if ' ' in mtext:  # 1.BMR計算(性別, 年齡, 身高, 體重, 運動習慣)以及個人資料紀錄或修改
                     try:
                         data = mtext.split(" ")
                         age = int(data[1])  # 使用者年齡
@@ -195,7 +191,7 @@ def callback(request):
                         message.append(TextSendMessage(text="輸入格式為：性別 年齡 身高 體重 運動習慣"))
                 
 
-                elif "查詢資料" in mtext:  # 查詢今天的熱量，輸出圓餅圖
+                elif "查詢資料" in mtext:  # 2.查詢今天的熱量，輸出圓餅圖
 
                     """
                     第一部分：查詢當日熱量
@@ -257,7 +253,7 @@ def callback(request):
                     else:  # 使用者尚未輸入資料提醒(原則上會在一開始提醒使用者先輸入基本資料)
                         message.append(TextSendMessage(text="你還沒輸入資料喔"))
 
-                elif "/" in mtext:  # 輸入每天吃了什麼
+                elif "/" in mtext:  # 3.輸入每天吃了什麼
                     calHere = 0
                     try:
                         ftype, food = mtext.split("/")
@@ -339,7 +335,7 @@ def callback(request):
                     except:  # 輸入格式錯誤提醒
                         message.append(TextSendMessage(text="飲食輸入格式為：時段(早餐、午餐、晚餐、宵夜、飲料、其他)/食物，"))
 
-                elif "，" in mtext:  # 自行輸入食物熱量(時段，食物，熱量)
+                elif "，" in mtext:  # 4.自行輸入食物熱量(時段，食物，熱量)
                     period, food, cal = mtext.split("，")  # 此處設定為全形逗號(中文輸入)
 
                     # 建立飲食資料
@@ -368,7 +364,7 @@ def callback(request):
                     message.append(TextSendMessage(text=food + '預估的熱量是' + cal + 'Kcal'))
                     message.append(TextSendMessage(text='今天仍可以攝取' + str(round(calculate, 3)) + 'Kcal'))
 
-                elif '每月報告' in mtext:  #  每月報告，輸出折線圖
+                elif '每月報告' in mtext:  #  5.每月報告，輸出折線圖
 
                     # 先取得使用者基本資料
                     infor = User_Info.objects.get(uid=uid,data_type="個人資料",number=1)
@@ -409,7 +405,7 @@ def callback(request):
                     # 輸出圖表
                     message.append(ImageSendMessage(original_content_url=uploaded_image.link, preview_image_url=uploaded_image.link))
 
-                elif "." in mtext:  # 更改飲食策略
+                elif "." in mtext:  # 6.更改飲食策略
                     strategy = mtext[:1]
                     user = User_Info.objects.get(uid=uid, data_type='個人資料', number=1)
                     if strategy == 'a' :
@@ -437,7 +433,7 @@ def callback(request):
                             )
                         )
                     )
-                elif "使用說明" in mtext:
+                elif "使用說明" in mtext:  # 7.使用說明
                     message.append(TextSendMessage(text="希望這個小工具能幫助你走上\n健康快樂的飲食之路\n" + "以下為使用說明手冊\n1.在開始使用功能之前，輸入或修改基本資料：\n輸入格式為m/f(男/女) 體重 身高 年齡 運動習慣”，以上資訊皆須按照順序且以半形空格隔開\n舉例：m 18 185 80 C\n2.運動習慣有五個選項，請選取以下五個英文字母其中一個輸入：\nA：久坐\nB：輕量活動(1~3天/週)\nC：中度活動量(3~5天/週)\nD：高度活動量(6~7天/週)\nE：非常高度活動量(運動員)\n3.輸入食物的方法為“用餐時間/食物名稱”\n用餐時間：早餐、午餐、晚餐、宵夜、飲料、其他\n舉例：輸入“早餐/蛋餅”\n4.自行輸入食物熱量的方式為“時段，食物，熱量”，以上資訊皆須按照順序且以全形逗號隔開\n舉例：輸入“早餐，蛋餅，100”\n5.查詢選單內容包含：使用說明、查詢30日資料、查詢個人資料（一天還能吃多少）及修改策略"))
 
                 else:  # 提醒部分，我們沒做出主動提醒，所以改成使用者輸入無法啟動功能的訊息就傳提醒訊息
