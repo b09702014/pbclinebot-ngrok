@@ -227,6 +227,15 @@ def callback(request):
                             typeDict_values = list(typeDict.values())
                             for data in typeDict_values:
                                 data = float(data)
+                            
+                            #補充文字(比較)
+                            eat_str = '今天吃了：  '
+                            periodDict = dict()
+                            for period in typeDict:
+                                if typeDict[period] != 0.0:
+                                    eat_str += period + ":" + str(typeDict[period]) +"大卡 "
+                            
+                            message.append(TextSendMessage(text=eat_str))
 
                             labels = []
                             dataSet = []
@@ -234,6 +243,8 @@ def callback(request):
                                 if typeDict_values[i] != 0:
                                     labels.append(typeDict_keys[i])
                                     dataSet.append(typeDict_values[i])
+                            
+                            py.clf()
                             py.pie(dataSet, labels=labels, autopct='%1.1f%%', startangle=90)
                             py.axis('equal')
                             py.tight_layout()
@@ -372,6 +383,7 @@ def callback(request):
                     dateList = []
                     tdeeList = []
                     xList = []
+                    month_dict = dict()
                     # date = pd.date_range(end=today, periods=31)
                     for i in range(31):
                         dateBefore = today - datetime.timedelta(days=30-i)
@@ -382,10 +394,25 @@ def callback(request):
                             user = User_Info.objects.get(uid=uid, data_type="個人資料",date=dateBefore)
                             user_tdee = float(user.user_bmr) - float(user.cal)
                             tdeeList.append(user_tdee)
+                            month_dict[dateBeforechange] = user_tdee
                         except User_Info.DoesNotExist:
                                 tdeeList.append(0)
                     tdeePlot = [float(infor.user_bmr)]*31
 
+                    month_str = ''
+                    over = 0
+                    over_date = ''
+                    for date in month_dict:
+                        if month_dict[date] != 0.0:
+                            month_str += date + ':' + str(int(month_dict[date])) + '大卡  '
+                            if month_dict[date] > float(infor.user_bmr):
+                                over += 1
+                                over_date += date + ' '
+                        
+                    message.append(TextSendMessage(text=month_str))
+                    message.append(TextSendMessage(text='有' + str(over) +'天超過標準，日期是： ' + over_date))
+
+                    py.clf()
                     py.plot(xList, tdeeList, label = "Consumption Level", marker = 'o')
                     py.plot(xList, tdeePlot, label = "TDEE Level", marker = 'o')
                     py.legend(loc = 'upper left')
@@ -416,6 +443,7 @@ def callback(request):
                         message.append(TextSendMessage(text='在減重的策略下，你不能攝取超過' + str(round(float(user.user_bmr), 3)) + ' Kcal/Day。'))
                     else:
                         message.append(TextSendMessage(text='輸入格式為 英文小寫加策略 \n(a:增重, b:正常, c:減重)'))
+
                 elif '更改策略' in mtext:  # 更改飲食策略(快捷鍵)
                     message.append(TextSendMessage(text="要改成什麼策略？",
                             quick_reply=QuickReply(
